@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+
 const {
   createClub,
   getClubs,
@@ -10,25 +11,65 @@ const {
   leaveClub,
   getClubMembers
 } = require('../controllers/clubController');
-const { verifyToken, authorizeRole, requirePresident } = require('../middleware/authMiddleware');
-const { uploadClubImages, uploadLogo, uploadCover } = require('../middleware/uploadMiddleware');
 
-// Public
+const {
+  verifyToken,
+  authorizeRole
+} = require('../middleware/authMiddleware');
+
+const {
+  uploadClubImages
+} = require('../middleware/uploadMiddleware');
+
+// Public routes
 router.get('/', getClubs);
 router.get('/:id', getClubById);
 
-// Admin
-router.post('/', verifyToken, authorizeRole('admin'), uploadClubImages, createClub);
-router.delete('/:id', verifyToken, authorizeRole('admin'), deleteClub);
+// Admin and SuperAdmin routes
+router.post(
+  '/',
+  verifyToken,
+  authorizeRole('admin', 'superadmin'),
+  uploadClubImages,
+  createClub
+);
 
-// Admin or President (put allows both, but logic handles permission)
-router.put('/:id', verifyToken, uploadClubImages, updateClub);
+router.delete(
+  '/:id',
+  verifyToken,
+  authorizeRole('admin', 'superadmin'),
+  deleteClub
+);
 
-// President or Admin
-router.get('/:id/members', verifyToken, getClubMembers);
+// Admin, SuperAdmin and President
+router.put(
+  '/:id',
+  verifyToken,
+  uploadClubImages,
+  updateClub
+);
 
-// Student
-router.post('/:id/join', verifyToken, authorizeRole('student', 'president'), joinClub);
-router.delete('/:id/leave', verifyToken, authorizeRole('student', 'president'), leaveClub);
+// Protected members route
+router.get(
+  '/:id/members',
+  verifyToken,
+  authorizeRole('admin', 'superadmin', 'president'),
+  getClubMembers
+);
+
+// Student and President routes
+router.post(
+  '/:id/join',
+  verifyToken,
+  authorizeRole('student', 'president'),
+  joinClub
+);
+
+router.delete(
+  '/:id/leave',
+  verifyToken,
+  authorizeRole('student', 'president'),
+  leaveClub
+);
 
 module.exports = router;
